@@ -9,6 +9,7 @@ package oneway.springy {
 		public var height:int = 100;
 		public var currentBB:Object;
 		public var size:SpringVector;
+		public var pos:SpringVector;
 		public function updateBB(bb:Object):void
 		{
 			this.currentBB = bb;
@@ -24,23 +25,23 @@ package oneway.springy {
 			{
 				size.y = height * xS;
 			}
+			pos = currentBB.bottomleft;
 		}
 		
 		public function PosTransform() {
 		
 		}
 		
-		public function toScreen(p:SpringVector):SpringVector {
-			//var size:SpringVector = currentBB.topright.subtract(currentBB.bottomleft);
-			var sx:Number = p.subtract(currentBB.bottomleft).divide(size.x).x * width;
-			var sy:Number = p.subtract(currentBB.bottomleft).divide(size.y).y * height;
+		public function toScreen(p:SpringVector):SpringVector {	
+			var sx:Number =(p.x-pos.x)*width/size.x;
+			var sy:Number = (p.y-pos.y)*height/size.y;
 			return new SpringVector(sx, sy);
 		}
 		
 		public function fromScreen(s:SpringVector):SpringVector {
 			//var size:SpringVector = currentBB.topright.subtract(currentBB.bottomleft);
-			var px:Number = (s.x / width) * size.x + currentBB.bottomleft.x;
-			var py:Number = (s.y / height) * size.y + currentBB.bottomleft.y;
+			var px:Number = (s.x / width) * size.x + pos.x;
+			var py:Number = (s.y / height) * size.y + pos.y;
 			return new Springy.Vector(px, py);
 		}
 	}
