@@ -10,31 +10,40 @@ package oneway.springy {
 		public var currentBB:Object;
 		public var size:SpringVector;
 		public var pos:SpringVector;
-		public function updateBB(bb:Object):void
-		{
+		public var fixScale:Number = 0;
+		
+		public function updateBB(bb:Object):void {
 			this.currentBB = bb;
 			size = currentBB.topright.subtract(currentBB.bottomleft);
-			var xS:Number;
-			var yS:Number;
-			xS = size.x / width;
-			yS = size.y / height;
-			if (xS < yS)
-			{
-				size.x = width * yS;
-			}else
-			{
-				size.y = height * xS;
+			if (fixScale > 0) {
+				size.x = width * fixScale;
+				size.y = height * fixScale;
+				pos = new SpringVector(0, 0);
 			}
-			pos = currentBB.bottomleft;
+			else {
+				var xS:Number;
+				var yS:Number;
+				xS = size.x / width;
+				yS = size.y / height;
+				if (xS < yS) {
+					size.x = width * yS;
+				}
+				else {
+					size.y = height * xS;
+				}
+				pos = currentBB.bottomleft;
+			}
+			
+			
 		}
 		
 		public function PosTransform() {
 		
 		}
 		
-		public function toScreen(p:SpringVector):SpringVector {	
-			var sx:Number =(p.x-pos.x)*width/size.x;
-			var sy:Number = (p.y-pos.y)*height/size.y;
+		public function toScreen(p:SpringVector):SpringVector {
+			var sx:Number = (p.x - pos.x) * width / size.x;
+			var sy:Number = (p.y - pos.y) * height / size.y;
 			return new SpringVector(sx, sy);
 		}
 		
@@ -42,7 +51,7 @@ package oneway.springy {
 			//var size:SpringVector = currentBB.topright.subtract(currentBB.bottomleft);
 			var px:Number = (s.x / width) * size.x + pos.x;
 			var py:Number = (s.y / height) * size.y + pos.y;
-			return new Springy.Vector(px, py);
+			return new SpringVector(px, py);
 		}
 	}
 

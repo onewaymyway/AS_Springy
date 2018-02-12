@@ -416,8 +416,11 @@ var Laya=window.Laya=(function(window,document){
 	var TestSpringy=(function(){
 		function TestSpringy(){
 			this.sp=null;
-			this.width=10;
-			this.height=10;
+			this.layout=null;
+			this.render=null;
+			this.width=1;
+			this.height=1;
+			this.node=null;
 			Springy.init();
 			Laya.init(1000,900);
 			this.testSpringy();
@@ -433,11 +436,24 @@ var Laya=window.Laya=(function(window,document){
 			graph.addNodes('Dennis','Michael','Jessica','Timothy','Barbara')
 			graph.addNodes('Amphitryon','Alcmene','Iphicles','Heracles');
 			graph.addEdges(['Dennis','Michael',{color:'#00A0B0',label:'Foo bar' }],['Michael','Dennis',{color:'#6A4A3C' }],['Michael','Jessica',{color:'#CC333F' }],['Jessica','Barbara',{color:'#EB6841' }],['Michael','Timothy',{color:'#EDC951' }],['Amphitryon','Alcmene',{color:'#7DBE3C' }],['Alcmene','Amphitryon',{color:'#BE7D3C' }],['Amphitryon','Iphicles'],['Amphitryon','Heracles'],['Barbara','Timothy',{color:'#6A4A3C' }]);
-			var layout;
-			layout=new ForceDirected(graph,100,100,0.5);
-			var render;
-			render=new Renderer(layout,this.clear.bind(this),this.drawEdge.bind(this),this.drawNode.bind(this));
-			render.start();
+			this.layout=new ForceDirected(graph,100,100,0.6);
+			this.render=new Renderer(this.layout,this.clear.bind(this),this.drawEdge.bind(this),this.drawNode.bind(this));
+			var posTransform;
+			posTransform=new PosTransform();
+			posTransform.width=600;
+			posTransform.height=400;
+			this.render.posTransform=posTransform;
+			this.render.start();
+			Laya.stage.on("mousedown",this,this.onClick);
+		}
+
+		__proto.onClick=function(){
+			console.log("node:",this.node);
+			var point;
+			point=this.layout.point(this.node);
+			debugger;
+			point.p=this.render.posTransform.fromScreen(new SpringVector(this.sp.mouseX,this.sp.mouseY));
+			point.m=100;
 		}
 
 		__proto.clear=function(){
@@ -452,7 +468,8 @@ var Laya=window.Laya=(function(window,document){
 
 		__proto.drawNode=function(node,p){
 			console.log("drawNode",node,p);
-			this.sp.graphics.drawCircle(p.x*this.width,p.y*this.height,5,"#ffff00");
+			this.sp.graphics.drawCircle(p.x *this.width,p.y *this.height,5,"#ffff00");
+			this.node=node;
 		}
 
 		return TestSpringy;
@@ -963,6 +980,62 @@ var Laya=window.Laya=(function(window,document){
 	*...
 	*@author ww
 	*/
+	//class oneway.springy.PosTransform
+	var PosTransform=(function(){
+		function PosTransform(){
+			this.width=100;
+			this.height=100;
+			this.currentBB=null;
+			this.size=null;
+			this.pos=null;
+			this.fixScale=0;
+		}
+
+		__class(PosTransform,'oneway.springy.PosTransform');
+		var __proto=PosTransform.prototype;
+		__proto.updateBB=function(bb){
+			this.currentBB=bb;
+			this.size=this.currentBB.topright.subtract(this.currentBB.bottomleft);
+			if (this.fixScale > 0){
+				this.size.x=this.width *this.fixScale;
+				this.size.y=this.height *this.fixScale;
+				this.pos=new SpringVector(0,0);
+			}
+			else {
+				var xS=NaN;
+				var yS=NaN;
+				xS=this.size.x / this.width;
+				yS=this.size.y / this.height;
+				if (xS < yS){
+					this.size.x=this.width *yS;
+				}
+				else {
+					this.size.y=this.height *xS;
+				}
+				this.pos=this.currentBB.bottomleft;
+			}
+		}
+
+		__proto.toScreen=function(p){
+			var sx=(p.x-this.pos.x)*this.width / this.size.x;
+			var sy=(p.y-this.pos.y)*this.height / this.size.y;
+			return new SpringVector(sx,sy);
+		}
+
+		__proto.fromScreen=function(s){
+			var px=(s.x / this.width)*this.size.x+this.pos.x;
+			var py=(s.y / this.height)*this.size.y+this.pos.y;
+			return new SpringVector(px,py);
+		}
+
+		return PosTransform;
+	})()
+
+
+	/**
+	*...
+	*@author ww
+	*/
 	//class oneway.springy.Renderer
 	var Renderer=(function(){
 		function Renderer(layout,clear,drawEdge,drawNode,onRenderStop,onRenderStart){
@@ -972,6 +1045,7 @@ var Laya=window.Laya=(function(window,document){
 			this.drawNode=null;
 			this.onRenderStop=null;
 			this.onRenderStart=null;
+			this.posTransform=null;
 			this.layout=layout;
 			this.clear=clear;
 			this.drawEdge=drawEdge;
@@ -988,14 +1062,27 @@ var Laya=window.Laya=(function(window,document){
 		}
 
 		__proto.start=function(done){
+			var _$this=this;
 			var t=this;
 			this.layout.start(render=function(){
 				t.clear();
+				if (_$this.posTransform){
+					_$this.posTransform.updateBB(_$this.layout.getBoundingBox());
+				}
 				t.layout.eachEdge(function(edge,spring){
+					if (_$this.posTransform){
+						t.drawEdge(edge,_$this.posTransform.toScreen(spring.point1.p),_$this.posTransform.toScreen(spring.point2.p));
+					}
+					else
 					t.drawEdge(edge,spring.point1.p,spring.point2.p);
 				});
 				t.layout.eachNode(function(node,point){
-					t.drawNode(node,point.p);
+					if (_$this.posTransform){
+						t.drawNode(node,_$this.posTransform.toScreen(point.p));
+					}
+					else {
+						t.drawNode(node,point.p);
+					}
 				});
 			},this.onRenderStop,this.onRenderStart);
 		}
