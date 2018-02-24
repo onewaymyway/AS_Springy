@@ -410,50 +410,70 @@ var Laya=window.Laya=(function(window,document){
 
 	/**
 	*...
-	*@author ww
+	*@author ...
 	*/
-	//class TestSpringy
-	var TestSpringy=(function(){
-		function TestSpringy(){
-			this.sp=null;
+	//class map.MapRender
+	var MapRender=(function(){
+		function MapRender(layout){
 			this.layout=null;
-			this.render=null;
+			this.posTransform=null;
+			this.sp=null;
+			this._render=null;
+			this._renderEdge=null;
+			this._renderNode=null;
+			this._onRenderStop=null;
+			this._onRenderStart=null;
 			this.width=1;
 			this.height=1;
 			this.node=null;
-			Springy.init();
-			Laya.init(1000,900);
-			this.testSpringy();
-		}
-
-		__class(TestSpringy,'TestSpringy');
-		var __proto=TestSpringy.prototype;
-		__proto.testSpringy=function(){
+			this._render=Utils.bind(this.render,this);
+			this._renderEdge=Utils.bind(this.renderEdge,this);
+			this._renderNode=Utils.bind(this.renderNode,this);
+			this._onRenderStop=Utils.bind(this.onRenderStop,this);
+			this._onRenderStart=Utils.bind(this.onRenderStart,this);
 			this.sp=new Sprite();
-			Laya.stage.addChild(this.sp);
-			this.sp.pos(100,100);
-			var graph=new Graph();
-			graph.addNodes('Dennis','Michael','Jessica','Timothy','Barbara')
-			graph.addNodes('Amphitryon','Alcmene','Iphicles','Heracles');
-			graph.addEdges(['Dennis','Michael',{color:'#00A0B0',label:'Foo bar' }],['Michael','Dennis',{color:'#6A4A3C' }],['Michael','Jessica',{color:'#CC333F' }],['Jessica','Barbara',{color:'#EB6841' }],['Michael','Timothy',{color:'#EDC951' }],['Amphitryon','Alcmene',{color:'#7DBE3C' }],['Alcmene','Amphitryon',{color:'#BE7D3C' }],['Amphitryon','Iphicles'],['Amphitryon','Heracles'],['Barbara','Timothy',{color:'#6A4A3C' }]);
-			this.layout=new ForceDirected(graph,100,100,0.6);
-			this.render=new Renderer(this.layout,this.clear.bind(this),this.drawEdge.bind(this),this.drawNode.bind(this));
-			var posTransform;
-			posTransform=new PosTransform();
-			posTransform.width=600;
-			posTransform.height=400;
-			this.render.posTransform=posTransform;
-			this.render.start();
-			Laya.stage.on("mousedown",this,this.onClick);
+			this.layout=layout;
+			this.layout.graph.addGraphListener(this);
 		}
 
-		__proto.onClick=function(){
-			console.log("node:",this.node);
-			var point;
-			point=this.layout.point(this.node);
-			debugger;
-			point.p=this.render.posTransform.fromScreen(new SpringVector(this.sp.mouseX,this.sp.mouseY));
-			point.m=100;
+		__class(MapRender,'map.MapRender');
+		var __proto=MapRender.prototype;
+		__proto.graphChanged=function(e){
+			this.start();
+		}
+
+		__proto.start=function(done){
+			this.layout.start(this._render,this._onRenderStop,this._onRenderStart);
+		}
+
+		__proto.render=function(){
+			this.clear();
+			if (this.posTransform){
+				this.posTransform.updateBB(this.layout.getBoundingBox());
+			}
+			this.layout.eachEdge(this._renderEdge);
+			this.layout.eachNode(this._renderNode);
+		}
+
+		__proto.renderNode=function(node,point){
+			if (this.posTransform){
+				this.drawNode(node,this.posTransform.toScreen(point.p));
+			}
+			else{
+				this.drawNode(node,point.p);
+			}
+		}
+
+		__proto.renderEdge=function(edge,spring){
+			if (this.posTransform){
+				this.drawEdge(edge,this.posTransform.toScreen(spring.point1.p),this.posTransform.toScreen(spring.point2.p));
+			}
+			else
+			this.drawEdge(edge,spring.point1.p,spring.point2.p);
+		}
+
+		__proto.stop=function(){
+			this.layout.stop();
 		}
 
 		__proto.clear=function(){
@@ -463,16 +483,53 @@ var Laya=window.Laya=(function(window,document){
 
 		__proto.drawEdge=function(edge,p1,p2){
 			console.log("drawEdge:",edge,p1,p2);
-			this.sp.graphics.drawLine(p1.x*this.width,p1.y*this.height,p2.x*this.width,p2.y*this.height,"#ff0000");
+			this.sp.graphics.drawLine(p1.x *this.width,p1.y *this.height,p2.x *this.width,p2.y *this.height,"#ff0000");
 		}
 
 		__proto.drawNode=function(node,p){
 			console.log("drawNode",node,p);
-			this.sp.graphics.drawCircle(p.x *this.width,p.y *this.height,5,"#ffff00");
+			this.sp.graphics.drawCircle(p.x *this.width,p.y *this.height,15,"#ffff00");
 			this.node=node;
 		}
 
-		return TestSpringy;
+		__proto.onRenderStart=function(){}
+		__proto.onRenderStop=function(){}
+		return MapRender;
+	})()
+
+
+	/**
+	*...
+	*@author ...
+	*/
+	//class TestMapRender
+	var TestMapRender=(function(){
+		function TestMapRender(){
+			this.map=null;
+			Laya.init(1000,900);
+			this.test();
+		}
+
+		__class(TestMapRender,'TestMapRender');
+		var __proto=TestMapRender.prototype;
+		__proto.test=function(){
+			var layout;
+			var graph=new Graph();
+			graph.addNodes('Dennis','Michael','Jessica','Timothy','Barbara')
+			graph.addNodes('Amphitryon','Alcmene','Iphicles','Heracles');
+			graph.addEdges(['Dennis','Michael',{color:'#00A0B0',label:'Foo bar' }],['Michael','Dennis',{color:'#6A4A3C' }],['Michael','Jessica',{color:'#CC333F' }],['Jessica','Barbara',{color:'#EB6841' }],['Michael','Timothy',{color:'#EDC951' }],['Amphitryon','Alcmene',{color:'#7DBE3C' }],['Alcmene','Amphitryon',{color:'#BE7D3C' }],['Amphitryon','Iphicles'],['Amphitryon','Heracles'],['Barbara','Timothy',{color:'#6A4A3C' }]);
+			layout=new ForceDirected(graph,100,100,0.6);
+			this.map=new MapRender(layout);
+			Laya.stage.addChild(this.map.sp);
+			var posTransform;
+			posTransform=new PosTransform();
+			posTransform.width=600;
+			posTransform.height=400;
+			this.map.posTransform=posTransform;
+			this.map.start();
+		}
+
+		return TestMapRender;
 	})()
 
 
@@ -1036,69 +1093,6 @@ var Laya=window.Laya=(function(window,document){
 	*...
 	*@author ww
 	*/
-	//class oneway.springy.Renderer
-	var Renderer=(function(){
-		function Renderer(layout,clear,drawEdge,drawNode,onRenderStop,onRenderStart){
-			this.layout=null;
-			this.clear=null;
-			this.drawEdge=null;
-			this.drawNode=null;
-			this.onRenderStop=null;
-			this.onRenderStart=null;
-			this.posTransform=null;
-			this.layout=layout;
-			this.clear=clear;
-			this.drawEdge=drawEdge;
-			this.drawNode=drawNode;
-			this.onRenderStop=onRenderStop;
-			this.onRenderStart=onRenderStart;
-			this.layout.graph.addGraphListener(this);
-		}
-
-		__class(Renderer,'oneway.springy.Renderer');
-		var __proto=Renderer.prototype;
-		__proto.graphChanged=function(e){
-			this.start();
-		}
-
-		__proto.start=function(done){
-			var _$this=this;
-			var t=this;
-			this.layout.start(render=function(){
-				t.clear();
-				if (_$this.posTransform){
-					_$this.posTransform.updateBB(_$this.layout.getBoundingBox());
-				}
-				t.layout.eachEdge(function(edge,spring){
-					if (_$this.posTransform){
-						t.drawEdge(edge,_$this.posTransform.toScreen(spring.point1.p),_$this.posTransform.toScreen(spring.point2.p));
-					}
-					else
-					t.drawEdge(edge,spring.point1.p,spring.point2.p);
-				});
-				t.layout.eachNode(function(node,point){
-					if (_$this.posTransform){
-						t.drawNode(node,_$this.posTransform.toScreen(point.p));
-					}
-					else {
-						t.drawNode(node,point.p);
-					}
-				});
-			},this.onRenderStop,this.onRenderStart);
-		}
-
-		__proto.stop=function(){
-			this.layout.stop();
-		}
-
-		return Renderer;
-	})()
-
-
-	/**
-	*...
-	*@author ww
-	*/
 	//class oneway.springy.Spring
 	var Spring=(function(){
 		function Spring(point1,point2,length,k){
@@ -1176,25 +1170,6 @@ var Laya=window.Laya=(function(window,document){
 		}
 
 		return SpringVector;
-	})()
-
-
-	/**
-	*...
-	*@author ww
-	*/
-	//class oneway.springy.Springy
-	var Springy=(function(){
-		function Springy(){}
-		__class(Springy,'oneway.springy.Springy');
-		Springy.init=function(){
-			var requestFun;
-			var b=window;
-			requestFun=b.requestAnimationFrame || b.webkitRequestAnimationFrame || b.mozRequestAnimationFrame || b.oRequestAnimationFrame || b.msRequestAnimationFrame;
-			Spring.requestAnimationFrame=requestFun;
-		}
-
-		return Springy;
 	})()
 
 
@@ -17247,7 +17222,7 @@ var Laya=window.Laya=(function(window,document){
 	})(FileBitmap)
 
 
-	Laya.__init([EventDispatcher,LoaderManager,Render,Browser,Timer,LocalStorage]);
-	new TestSpringy();
+	Laya.__init([LoaderManager,EventDispatcher,Render,Browser,Timer,LocalStorage]);
+	new TestMapRender();
 
 })(window,document,Laya);

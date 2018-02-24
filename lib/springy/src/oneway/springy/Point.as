@@ -5,9 +5,21 @@ package oneway.springy {
 	 * @author ww
 	 */
 	public class Point {
+		/**
+		 * position
+		 */
 		public var p:Object;
+		/**
+		 * mass
+		 */
 		public var m:Number;
+		/**
+		 * velocity
+		 */
 		public var v:SpringVector;
+		/**
+		 * acceleration
+		 */
 		public var a:SpringVector;
 		
 		public function Point(position:Object, mass:Number) {

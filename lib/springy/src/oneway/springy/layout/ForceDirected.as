@@ -13,7 +13,13 @@ package oneway.springy.layout {
 	public class ForceDirected {
 		public var graph:Graph;
 		public var stiffness:Number;
+		/**
+		 * 排斥力
+		 */
 		public var repulsion:Number;
+		/**
+		 * 衰减
+		 */
 		public var damping:Number;
 		public var minEnergyThreshold:Number;
 		public var maxSpeed:Number;
